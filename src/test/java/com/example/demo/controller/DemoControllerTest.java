@@ -1,15 +1,17 @@
 package com.example.demo.controller;
 
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.ValueSource;
+import com.example.demo.DemoApplication;
+import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.junit.Test;
 
 /**
  * Skeleton template for a controller test using MockMvc.
@@ -23,11 +25,67 @@ import org.springframework.test.web.servlet.MockMvc;
  *                 .andExpect(content().string("string-you-expect-in-response")).
  *                 .andExpect(jsonPath("$.jsonField").value("json-value-you-expect"));
  */
-@SpringBootTest
+@RunWith(SpringRunner.class)
+@SpringBootTest(classes = DemoApplication.class)
 @AutoConfigureMockMvc
-class DemoControllerTest {
+public class DemoControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    // add your test cases here
+    @Test
+    public void testBasicWord_hello() throws Exception {
+        mockMvc.perform(get("/remove").param("original", "hello"))
+                .andExpect(status().isOk())
+                .andExpect( jsonPath("$.data", is("ell")));
+    }
+
+    @Test
+    public void testThreeCharWord_cat() throws Exception {
+        mockMvc.perform(get("/remove").param("original", "cat"))
+                .andExpect(status().isOk())
+                .andExpect( jsonPath("$.data", is("a")));
+    }
+
+    @Test
+    public void testSpecialChars_input() throws Exception {
+        mockMvc.perform(get("/remove").param("original", "@hello!"))
+                .andExpect(status().isOk())
+                .andExpect( jsonPath("$.data", is("hello")));
+    }
+
+    @Test
+    public void testNumericInput() throws Exception {
+        mockMvc.perform(get("/remove").param("original", "12345"))
+                .andExpect(status().isOk())
+                .andExpect( jsonPath("$.data", is("234")));
+    }
+
+    @Test
+    public void testTwoCharInput_ab() throws Exception {
+        mockMvc.perform(get("/remove").param("original", "ab"))
+                .andExpect(status().isOk())
+                .andExpect( jsonPath("$.data", is("")));
+    }
+
+    @Test
+    public void testTwoCharInput_brackets() throws Exception {
+        mockMvc.perform(get("/remove").param("original", "[]"))
+                .andExpect(status().isOk())
+                .andExpect( jsonPath("$.data", is("")));
+    }
+
+    @Test
+    public void testSingleCharInput_shouldFail() throws Exception {
+        mockMvc.perform(get("/remove").param("original", "v"))
+                .andExpect(status().isBadRequest())
+                .andExpect( jsonPath("$.statusCode", is(400)))
+                .andExpect(jsonPath("$.message", containsString("Invalid request")));
+    }
+
+    @Test
+    public void testEmptyInput_shouldFail() throws Exception {
+        mockMvc.perform(get("/remove").param("original", ""))
+                .andExpect(status().isBadRequest())
+                .andExpect( jsonPath("$.statusCode", is(400)));
+    }
 }
