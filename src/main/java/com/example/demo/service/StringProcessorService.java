@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class StringProcessorService {
-    public ResponseEntity<APIResponse> processString(String original) {
+    public ResponseEntity<APIResponse> processString(String original)  {
         if(original.length()==2){
             APIResponse successResponse = new APIResponse(
                     200,
@@ -26,7 +26,14 @@ public class StringProcessorService {
             );
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(badResponse);
         }
-        String result = original.substring(1, original.length()-1);
+        String result;
+        if(original.matches(".*[!@#$%~^&*()].*")){
+            String temp = original.replaceAll("([!@#$%~^&*()])", "_$1");
+            result = temp.substring(0,temp.length()-1);
+        }
+        else{
+            result = original.substring(1,original.length()-1);
+        }
         APIResponse successResponse = new APIResponse(
                 200,
                 "success",

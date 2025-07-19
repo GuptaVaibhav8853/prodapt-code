@@ -2,16 +2,21 @@ package com.example.demo.controller;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import com.example.demo.APIResponse;
 import com.example.demo.DemoApplication;
-import org.junit.runner.RunWith;
+import com.example.demo.service.StringProcessorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.servlet.MockMvc;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Skeleton template for a controller test using MockMvc.
@@ -25,53 +30,39 @@ import org.junit.Test;
  *                 .andExpect(content().string("string-you-expect-in-response")).
  *                 .andExpect(jsonPath("$.jsonField").value("json-value-you-expect"));
  */
-@RunWith(SpringRunner.class)
+//@RunWith(SpringRunner.class)
 @SpringBootTest(classes = DemoApplication.class)
 @AutoConfigureMockMvc
 public class DemoControllerTest {
     @Autowired
     private MockMvc mockMvc;
-
-    @Test
-    public void testBasicWord_hello() throws Exception {
-        mockMvc.perform(get("/remove").param("original", "hello"))
-                .andExpect(status().isOk())
-                .andExpect( jsonPath("$.data", is("ell")));
+    @ParameterizedTest
+    @CsvSource({
+            "hello, ell",
+            "12345, 234",
+            "abcdef, bcde",
+            "java, av",
+            "test123, est12",
+            "123, 2",
+            "ab,''",
+    })
+    void testValidStringsWithoutSpecialCharacters(String input, String expectedOutput) {
+        StringProcessorService stringProcessorService = new StringProcessorService();
+        ResponseEntity<APIResponse> response = stringProcessorService.processString(input);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(expectedOutput, response.getBody().getData());
     }
 
-    @Test
-    public void testThreeCharWord_cat() throws Exception {
-        mockMvc.perform(get("/remove").param("original", "cat"))
-                .andExpect(status().isOk())
-                .andExpect( jsonPath("$.data", is("a")));
-    }
-
-    @Test
-    public void testSpecialChars_input() throws Exception {
-        mockMvc.perform(get("/remove").param("original", "@hello!"))
-                .andExpect(status().isOk())
-                .andExpect( jsonPath("$.data", is("hello")));
-    }
-
-    @Test
-    public void testNumericInput() throws Exception {
-        mockMvc.perform(get("/remove").param("original", "12345"))
-                .andExpect(status().isOk())
-                .andExpect( jsonPath("$.data", is("234")));
-    }
-
-    @Test
-    public void testTwoCharInput_ab() throws Exception {
-        mockMvc.perform(get("/remove").param("original", "ab"))
-                .andExpect(status().isOk())
-                .andExpect( jsonPath("$.data", is("")));
-    }
-
-    @Test
-    public void testTwoCharInput_brackets() throws Exception {
-        mockMvc.perform(get("/remove").param("original", "[]"))
-                .andExpect(status().isOk())
-                .andExpect( jsonPath("$.data", is("")));
+    @ParameterizedTest
+    @CsvSource({
+            "123%qwerty+, 123_%qwerty",
+            "123~qwerty+, 123_~qwerty"
+    })
+    public void testSpecialChars_input(String input, String expectedOutput) throws Exception {
+        StringProcessorService stringProcessorService = new StringProcessorService();
+        ResponseEntity<APIResponse> response = stringProcessorService.processString(input);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(expectedOutput, response.getBody().getData());
     }
 
     @Test
